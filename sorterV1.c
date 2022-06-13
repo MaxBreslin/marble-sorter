@@ -44,8 +44,12 @@ const int NORMAL_HIGH = 2900;
 
 // Threshholds to identify the current marble
 const int BLACK_THRESHHOLD = 2920; // greater than
-const int GREEN_THRESHHOLD = 2970; // greater than
+const int GREEN_THRESHHOLD = 2973; // greater than
 const int WOOD_THRESHHOLD = 2800; // less than
+
+const int BLACK_SERVO = -127;
+const int GREEN_SERVO = -25;
+const int WOOD_SERVO = 65;
 
 
 /*
@@ -90,15 +94,18 @@ int get_median(int *arr, int n) {
 }
 
 // Blocks execution until a marble is sensed
-void block_until_marble() {
+void block_until_marble(int timeout=10000) {
     int highest = 0;
     int lowest = 0xffff;
     int reading;
+    int count = 0;
 
-    while (lowest > NORMAL_LOW && highest < NORMAL_HIGH) {
+    while (lowest > NORMAL_LOW && highest < NORMAL_HIGH && count < timeout) {
         reading = SensorValue[line1];
         lowest = min(lowest,reading);
         highest = max(highest,reading);
+
+        count ++;
 
         sleep(1);
     }
@@ -157,16 +164,16 @@ int scan_with_line(int wait_for=50) {
 
 // Rotates the servo to the position specified by this_marble
 void rotate_servo(int &this_marble) {
-    if (this_marble==GREEN) {
-        motor[servo] = -127;
-        writeDebugStreamLine("GREEN");
-    }
-    else if (this_marble==BLACK) {
-        motor[servo] = -30;
+    if (this_marble==BLACK) {
+        motor[servo] = BLACK_SERVO;
         writeDebugStreamLine("BLACK");
     }
+    else if (this_marble==GREEN) {
+        motor[servo] = GREEN_SERVO;
+        writeDebugStreamLine("GREEN");
+    }
     else if (this_marble==WOOD) {
-        motor[servo] = 50;
+        motor[servo] = WOOD_SERVO;
         writeDebugStreamLine("WOOD");
     }
     else if (this_marble==NONE) {
@@ -189,7 +196,7 @@ bool sort_marble(int &total_sorted) {
     rotate_servo(this_marble);
 
     total_sorted ++;
-    if (total_sorted>=15) {
+    if (total_sorted>=16) {
         total_sorted = 0;
         return false;
     }
@@ -205,7 +212,7 @@ task reverse_spin() {
         if (bMotorReflected[low_gate]) {
             bMotorReflected[low_gate] = 0;
             bMotorReflected[high_gate] = 0;
-            sleep(2000);
+            sleep(1200);
         }
         else {
             bMotorReflected[low_gate] = 1;
@@ -226,8 +233,8 @@ task main() {
     while(1) {
         SensorValue[led] = working;
 
-        motor[low_gate] = working ? 15 : 0;
-        motor[high_gate] = working ? 15 : 0;
+        motor[low_gate] = working ? 14 : 0;
+        //motor[high_gate] = working ? 15 : 0;
 
         if (working) {
             writeDebugStreamLine("%i",total_sorted);
